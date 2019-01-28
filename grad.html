@@ -1,0 +1,238 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+  <title>网格拆分地图</title>
+  <style>
+    html,
+    body,
+    #container {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+  <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css"/>
+  <script src="https://webapi.amap.com/maps?v=1.4.11&key=您的key值"></script>
+  <script src="https://a.amap.com/jsapi_demos/static/demo-center/js/demoutils.js"></script>
+</head>
+<body>
+<div id="container"></div>
+<script>
+  var arrList = [];
+  var pointsObj = {};
+  var center_arrList = [];
+  var center_pointsObj = {};
+  var cityObj = {
+    'beijing':{
+      center: [116.387175, 39.876405],
+      left_lng:115.366776,
+      left_lat:41.086731,
+      right_lng:117.542069,
+      right_lat:39.452238,
+      center_left_lng:116.081887,
+      center_left_lat:40.278241,
+      center_right_lng:116.797011,
+      center_right_lat:39.739227,
+    },
+    'shanghai':{
+      center: [121.473658,31.230378],
+      left_lng:120.836038,
+      left_lat:31.863975,
+      right_lng:121.973123,
+      right_lat:30.728088,
+      center_left_lng:121.080483,
+      center_left_lat:31.480623,
+      center_right_lng:121.912698,
+      center_right_lat:30.855496,
+    },
+    'ningbo':{
+      center: [121.537022,29.862141],
+      left_lng:120.88089,
+      left_lat:30.340795,
+      right_lng:122.138824,
+      right_lat:29.018862,
+      center_left_lng:121.183014,
+      center_left_lat:29.970316,
+      center_right_lng:121.930084,
+      center_right_lat:29.225208,
+    },
+    'guangzhou':{
+      center: [113.254143,23.148238],
+      left_lng:112.957169,
+      left_lat:23.961769,
+      right_lng:114.066788,
+      right_lat:22.467498,
+      center_left_lng:112.990814,
+      center_left_lat:23.649542,
+      center_right_lng:113.836761,
+      center_right_lat:22.907789,
+    },
+    'nanjing':{
+      center: [118.802518,32.056623],
+      left_lng:118.28616,
+      left_lat:32.595072,
+      right_lng:119.236477,
+      right_lat:31.238284,
+      center_left_lng:118.361691,
+      center_left_lat:32.267045,
+      center_right_lng:119.130734,
+      center_right_lat:31.60041,
+    },
+    'hangzhou':{
+      center: [120.192619,30.234224],
+      left_lng:118.313957,
+      left_lat:30.528031,
+      right_lng:120.714469,
+      right_lat:29.1942,
+      center_left_lng:119.363151,
+      center_left_lat:30.494904,
+      center_right_lng:120.692497,
+      center_right_lat:29.648745,
+    },
+  }
+  //需要拆分网格的城市
+  var grad_city,left_lng,left_lat,right_lng,right_lat,center_left_lng,center_left_lat,center_right_lng,center_right_lat,southWest,northEast,center_southWest,center_northEast,center_northEast,map;
+
+
+  var km = 5000;//拆分的公里数
+  var center_km = 1000;//内部拆分的公里数
+
+
+  function init(city) {
+    grad_city = city
+    left_lng = cityObj[grad_city].left_lng;
+    left_lat = cityObj[grad_city].left_lat;
+    right_lng = cityObj[grad_city].right_lng;
+    right_lat = cityObj[grad_city].right_lat;
+    center_left_lng = cityObj[grad_city].center_left_lng;
+    center_left_lat = cityObj[grad_city].center_left_lat;
+    center_right_lng = cityObj[grad_city].center_right_lng;
+    center_right_lat = cityObj[grad_city].center_right_lat;
+
+    southWest = new AMap.LngLat(left_lng, left_lat) //左上
+    northEast = new AMap.LngLat(right_lng, right_lat) //右下
+    center_southWest = new AMap.LngLat(center_left_lng, center_left_lat) //左上
+    center_northEast = new AMap.LngLat(center_right_lng, center_right_lat) //右下
+    map = new AMap.Map('container', {
+      center: cityObj[grad_city].center,
+      zoom: 8
+    });
+    var bounds = new AMap.Bounds(southWest, northEast)
+    var rectangle = new AMap.Rectangle({
+      bounds: bounds,
+      strokeColor: 'red',
+      strokeWeight: 3,
+      strokeOpacity: 0.5,
+      strokeStyle: 'dashed',
+      fillColor: 'blue',
+      fillOpacity: 0.1,
+      cursor: 'pointer',
+    })
+    rectangle.setMap(map)
+    var center_bounds = new AMap.Bounds(center_southWest, center_northEast)
+    var center_rectangle = new AMap.Rectangle({
+      bounds: center_bounds,
+      strokeColor: 'red',
+      strokeWeight: 3,
+      strokeOpacity: 0.5,
+      strokeStyle: 'dashed',
+      fillColor: 'blue',
+      fillOpacity: 0.1,
+      cursor: 'pointer',
+    })
+    center_rectangle.setMap(map)
+    var x1 = new AMap.LngLat(left_lng, left_lat)
+    var x2 = new AMap.LngLat(right_lng, left_lat)
+    var y = new AMap.LngLat(left_lng, right_lat)
+    var center_x1 = new AMap.LngLat(center_left_lng, center_left_lat)
+    var center_x2 = new AMap.LngLat(center_right_lng, center_left_lat)
+    var center_y = new AMap.LngLat(center_left_lng, center_right_lat)
+    var x_distance = x1.distance(x2);
+    var y_distance = x1.distance(y);
+    var center_x_distance = center_x1.distance(center_x2);
+    var center_y_distance = center_x1.distance(center_y);
+    console.log(x_distance, y_distance)
+    console.log(center_x_distance, center_y_distance)
+    drawGrad(x_distance, y_distance);
+    drawCenterGrad(center_x_distance, center_y_distance);
+  }
+  function drawGrad(x, y) {
+    var x_total = Math.floor(x / km);//首尾，故点多1
+    var y_total = Math.floor(y / km);
+    console.log(x_total, y_total)
+    for (var i = 0; i < x_total + 1; i++) {
+      for (var j = 0; j < y_total + 1; j++) {
+        let point = southWest.offset(km * i, -km * j)
+        //在内部矩形，则跳过
+        if ((center_left_lng <= point.lng && point.lng <= center_right_lng) && (center_right_lat <= point.lat && point.lat <= center_left_lat)) {
+          continue
+        }
+        pointsObj[i + "_" + j] = point.lng + ',' + point.lat
+        if (i > 0 && j > 0) {
+          let last_point = pointsObj[(i - 1) + '_' + (j - 1)];
+          if(!last_point){
+            continue
+          }
+          arrList.push(last_point+ '|' + pointsObj[i + '_' + j])
+        }
+        var bounds2 = new AMap.Bounds(southWest, point)
+        var rectangle2 = new AMap.Rectangle({
+          bounds: bounds2,
+          strokeColor: '#000',
+          strokeWeight: 1,
+          strokeStyle: 'dashed',
+          fillColor: 'transparent',
+        })
+        rectangle2.setMap(map)
+
+        if (i == x_total && j == y_total) {
+          // console.error(Date.parse(new Date()))
+          console.log(arrList.length)
+          console.log(JSON.stringify(arrList))
+        }
+      }
+    }
+  }
+  function drawCenterGrad(center_x, center_y){
+    var center_x_total = Math.floor(center_x / center_km);//首尾，故点多1
+    var center_y_total = Math.floor(center_y / center_km);
+    console.log(center_x_total, center_y_total)
+    for (var center_i = 0; center_i < center_x_total + 1; center_i++) {
+      for (var center_j = 0; center_j < center_y_total + 1; center_j++) {
+        let center_point = center_southWest.offset(center_km * center_i, -center_km * center_j)
+        center_pointsObj[center_i + "_" + center_j] = center_point.lng + ',' + center_point.lat
+        if (center_i > 0 && center_j > 0) {
+          let center_last_point = center_pointsObj[(center_i - 1) + '_' + (center_j - 1)];
+          if(!center_last_point){
+            continue
+          }
+          center_arrList.push(center_last_point+ '|' + center_pointsObj[center_i + '_' + center_j])
+        }
+        var center_bounds2 = new AMap.Bounds(center_southWest, center_point)
+        var center_rectangle2 = new AMap.Rectangle({
+          bounds: center_bounds2,
+          strokeColor: '#fff',
+          strokeWeight: 1,
+          strokeStyle: 'dashed',
+          fillColor: 'transparent',
+          zIndex:100,
+        })
+        center_rectangle2.setMap(map)
+
+        if (center_i == center_x_total && center_j == center_y_total) {
+          console.error(Date.parse(new Date()))
+          console.log(center_arrList.length)
+          console.log(JSON.stringify(center_arrList))
+        }
+      }
+    }
+  }
+  // function drawGrad(){}
+  // function drawCenterGrad(){}
+  init('ningbo')
+
+</script>
+</body>
+</html>
